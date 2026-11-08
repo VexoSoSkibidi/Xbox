@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xbox UI Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        body {
+            background-color: #0e0e11;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image: linear-gradient(135deg, #054c15 0%, #0e0e11 60%);
+        }
+        /* Video Boot Overlay Layer */
+        #boot-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000000;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+            transition: opacity 0.8s ease-in-out;
+            pointer-events: auto;
+        }
+        #boot-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #boot-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        /* Screen States Control with Fade Transition */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease-in-out;
+        }
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        /* SCREEN 1: "Who's Playing Today" */
+        #login-screen {
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.85)), url('https://unsplash.com') center/cover;
+        }
+        #login-screen h1 {
+            font-size: 2.8rem;
+            margin-bottom: 60px;
+            font-weight: 400;
+            letter-spacing: 1px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .profile-selection-container {
+            display: flex;
+            gap: 70px;
+            align-items: flex-start;
+        }
+        .profile-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        /* Interactive configuration only for Stewie */
+        .profile-card.interactive {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .profile-card.interactive:hover {
+            transform: scale(1.08);
+        }
+        /* Large profile circles */
+        .profile-circle {
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            border: 6px solid #107c10; /* Xbox Green Stroke */
+            box-shadow: 0 0 35px #107c10, inset 0 0 25px #107c10; /* Xbox Green Glow */
+            background-color: #141419;
+            transition: box-shadow 0.2s, background-color 0.2s;
+            overflow: hidden;
+        }
+        .profile-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .profile-card.interactive:hover .profile-circle {
+            box-shadow: 0 0 55px #16a34a, inset 0 0 35px #16a34a;
+            background-color: #1e1e26;
+        }
+        .profile-name {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-top: 30px;
+            letter-spacing: 0.5px;
+        }
+        /* SCREEN 2: Main Games Catalog Dashboard */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: rgba(20, 20, 24, 0.6);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid #107c10;
+            box-shadow: 0 0 8px #107c10;
+            background: #141419;
+            overflow: hidden;
+        }
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #107c10;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        .nav-links li {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            padding: 5px 10px;
+            border-bottom: 3px solid #107c10;
+        }
+        main {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .catalog-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+            color: #f1f5f9;
+        }
+        /* 5-Column Blank Grid Square Configuration */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 25px;
+            width: 100%;
+        }
+        .game-square {
+            aspect-ratio: 1 / 1;
+            background: rgba(30, 30, 38, 0.4);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            cursor: pointer;
+        }
+        .game-square:hover {
+            transform: scale(1.04);
+            border-color: #107c10;
+            background: rgba(40, 40, 50, 0.6);
+            box-shadow: 0 12px 30px rgba(16, 124, 16, 0.25);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Fullscreen Boot Video Layer linking to intro.mp4 -->
+    <div id="boot-overlay">
+        <video id="boot-video" autoplay muted playsinline>
+            <source src="intro.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <!-- SCREEN 1: Who's Playing Today -->
+    <div id="login-screen" class="screen active">
+        <h1>Who's playing today?</h1>
+        <div class="profile-selection-container">
+            <!-- Left Profile: Clean Circle, Unclickable -->
+            <div class="profile-card">
+                <div class="profile-circle"></div>
+            </div>
+
+            <!-- Middle Profile: Named Stewie, Clickable with Fade Event -->
+            <div class="profile-card interactive" onclick="loadDashboard()">
+                <div class="profile-circle">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS8DMAWc5OM3uIYIqV36Bio1xmuE_LH5ZlIYYM3egKCAw&s=10" alt="Stewie Profile">
+                </div>
+                <div class="profile-name">Stewie</div>
+            </div>
+
+            <!-- Right Profile: Clean Circle, Unclickable -->
+            <div class="profile-card">
+                <div class="profile-circle"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: Main Games Catalog Dashboard -->
+    <div id="dashboard-screen" class="screen">
+        <header>
+            <div class="profile-section">
+                <div class="avatar">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS8DMAWc5OM3uIYIqV36Bio1xmuE_LH5ZlIYYM3egKCAw&s=10" alt="Stewie Avatar">
+                </div>
+                <div>
+                    <h3>Stewie</h3>
+                    <span class="status-dot"></span><span style="font-size: 0.85rem; color: #aaa;">Online</span>
+                </div>
+            </div>
+            <ul class="nav-links">
+                <li class="active">My Games</li>
+            </ul>
+            <div style="font-size: 0.9rem; color: #ccc;">
+                Sat, Nov 7 &bull; 6:12 PM
+            </div>
+        </header>
+
+        <main>
+            <div class="catalog-title">Games Catalog</div>
+            <div class="game-grid">
+                <!-- 5 Blank Game Squares -->
+                <div class="game-square"></div>
+                <div class="game-square"></div>
+                <div class="game-square"></div>
+                <div class="game-square"></div>
+                <div class="game-square"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Handles hiding the video automatically when it finishes playing
+        const video = document.getElementById('boot-video');
+        const overlay = document.getElementById('boot-overlay');
+
+        video.addEventListener('ended', function() {
+            overlay.classList.add('hidden');
+        });
+
+        // Safety fallback: If video fails to load or find intro.mp4, hide overlay after 6 seconds anyway
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+        }, 6000);
+
+        function loadDashboard() {
+            document.getElementById('login-screen').classList.remove('active');
+            document.getElementById('dashboard-screen').classList.add('active');
+        }
+    </script>
+</body>
+</html>
